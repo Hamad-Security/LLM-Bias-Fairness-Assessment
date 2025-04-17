@@ -1,0 +1,121 @@
+Naming Convention Explanation
+
+The naming convention for the generated prompts follows a structured pattern that encapsulates four key components, each separated by an underscore. The format is:
+
+
+{UserID}_{Strategy}_{FairnessType}_{BiasDesignator}
+
+UserID:
+This is a unique identifier for the user. In our example and testing, we use a placeholder value such as "1". In production, it would be replaced by the actual user ID.
+
+Strategy:
+This indicates the method used for selecting the user's movie history subset. There are three strategies:
+
+random: A random sample of movies from the user's history.
+
+top-rated: The highest-rated movies from the user's history.
+
+recent: The most recent movies from the user's history.
+
+FairnessType:
+This parameter represents the type of sensitive or fairness information incorporated into the prompt. There are four possible values:
+
+neutral: No sensitive attributes are explicitly added.
+
+gender_age_only: Only gender and age group details are provided.
+
+occupation_only: Only occupation details are provided.
+
+all_attributes: All attributes, including gender, age, and occupation, are provided.
+
+BiasDesignator:
+This reflects whether any specific biasing strategy is applied to the prompt. If no biasing strategy is applied, the label defaults to baseline. The six options are:
+
+baseline: No biasing strategy (i.e., bias_strategy is None).
+
+niche_genre: The system focuses on recommending movies from less common or niche genres.
+
+exclude_popular: Popular or blockbuster movies are excluded from recommendations.
+
+indie_international: The recommendations are skewed towards independent or international films.
+
+temporal_diverse: Recommendations span a wider temporal range, including older films.
+
+obscure_theme: The system recommends underrated and lesser-known films.
+
+Since the overall number of combinations is calculated as 3 (strategies) × 4 (fairness types) × 6 (bias options) = 72, each generated prompt is uniquely identified with one of these 72 naming combinations. This structured naming assists in clearly distinguishing the variations in prompt configurations, facilitating both debugging and experimental comparisons.
+
+Complete List of All 72 Combinations
+
+1_random_neutral_baseline
+1_random_neutral_niche_genre
+1_random_neutral_exclude_popular
+1_random_neutral_indie_international
+1_random_neutral_temporal_diverse
+1_random_neutral_obscure_theme
+1_random_gender_age_only_baseline
+1_random_gender_age_only_niche_genre
+1_random_gender_age_only_exclude_popular
+1_random_gender_age_only_indie_international
+1_random_gender_age_only_temporal_diverse
+1_random_gender_age_only_obscure_theme
+1_random_occupation_only_baseline
+1_random_occupation_only_niche_genre
+1_random_occupation_only_exclude_popular
+1_random_occupation_only_indie_international
+1_random_occupation_only_temporal_diverse
+1_random_occupation_only_obscure_theme
+1_random_all_attributes_baseline
+1_random_all_attributes_niche_genre
+1_random_all_attributes_exclude_popular
+1_random_all_attributes_indie_international
+1_random_all_attributes_temporal_diverse
+1_random_all_attributes_obscure_theme
+1_top-rated_neutral_baseline
+1_top-rated_neutral_niche_genre
+1_top-rated_neutral_exclude_popular
+1_top-rated_neutral_indie_international
+1_top-rated_neutral_temporal_diverse
+1_top-rated_neutral_obscure_theme
+1_top-rated_gender_age_only_baseline
+1_top-rated_gender_age_only_niche_genre
+1_top-rated_gender_age_only_exclude_popular
+1_top-rated_gender_age_only_indie_international
+1_top-rated_gender_age_only_temporal_diverse
+1_top-rated_gender_age_only_obscure_theme
+1_top-rated_occupation_only_baseline
+1_top-rated_occupation_only_niche_genre
+1_top-rated_occupation_only_exclude_popular
+1_top-rated_occupation_only_indie_international
+1_top-rated_occupation_only_temporal_diverse
+1_top-rated_occupation_only_obscure_theme
+1_top-rated_all_attributes_baseline
+1_top-rated_all_attributes_niche_genre
+1_top-rated_all_attributes_exclude_popular
+1_top-rated_all_attributes_indie_international
+1_top-rated_all_attributes_temporal_diverse
+1_top-rated_all_attributes_obscure_theme
+1_recent_neutral_baseline
+1_recent_neutral_niche_genre
+1_recent_neutral_exclude_popular
+1_recent_neutral_indie_international
+1_recent_neutral_temporal_diverse
+1_recent_neutral_obscure_theme
+1_recent_gender_age_only_baseline
+1_recent_gender_age_only_niche_genre
+1_recent_gender_age_only_exclude_popular
+1_recent_gender_age_only_indie_international
+1_recent_gender_age_only_temporal_diverse
+1_recent_gender_age_only_obscure_theme
+1_recent_occupation_only_baseline
+1_recent_occupation_only_niche_genre
+1_recent_occupation_only_exclude_popular
+1_recent_occupation_only_indie_international
+1_recent_occupation_only_temporal_diverse
+1_recent_occupation_only_obscure_theme
+1_recent_all_attributes_baseline
+1_recent_all_attributes_niche_genre
+1_recent_all_attributes_exclude_popular
+1_recent_all_attributes_indie_international
+1_recent_all_attributes_temporal_diverse
+1_recent_all_attributes_obscure_theme
