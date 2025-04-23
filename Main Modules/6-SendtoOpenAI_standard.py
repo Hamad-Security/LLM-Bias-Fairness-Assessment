@@ -9,7 +9,7 @@ api_key = "sk-proj-m-LIZtSPyADw1ruwDDu7sMJ5y6XfeJY6l6cIngQsVC7bXJqRF7wVepKudcKOE
 client = OpenAI(api_key=api_key)
 
 # Config
-INPUT_FILE = "prompts_short.jsonl"
+INPUT_FILE = "Main Modules/prompts/prompts_random.jsonl"
 OUTPUT_FILE = "batch_outputs/standard_output.jsonl"
 MODEL_NAME = "gpt-4o-mini"
 TEMPERATURE = 0.7

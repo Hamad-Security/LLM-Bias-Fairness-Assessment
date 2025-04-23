@@ -65,8 +65,8 @@ from datetime import datetime
 
 # Configuration
 DATA_DIR = 'Dataset/'
-OUTPUT_SHORT = 'Modules/prompts/prompts_short.jsonl'
-OUTPUT_FULL = 'Modules/prompts/prompts_full.jsonl'
+OUTPUT_SHORT = 'Main Modules/prompts/prompts_short.jsonl'
+OUTPUT_FULL = 'Main Modules/prompts/prompts_full.jsonl'
 N_PROFILES = 10
 TESTMODE = True
 
@@ -182,8 +182,6 @@ def write_jsonl(data, filepath):
     with open(filepath, 'w') as f:
         for item in data:
             f.write(json.dumps(item) + "\n")
-
-# Revised main loop to cover all combinations
 def main():
     full_data, users_df, movies_df = load_data(TESTMODE)
     train_df, test_df = temporal_split(full_data)
@@ -191,36 +189,47 @@ def main():
 
     all_users = users_df['UserID'].unique()
     selected_users = all_users[:2] if TESTMODE else all_users
-    prompts_data = []
 
     fairness_options = ['neutral', 'gender_age_only', 'occupation_only', 'all_attributes']
     bias_strategies = [None, "niche_genre", "exclude_popular", "indie_international", "temporal_diverse", "obscure_theme"]
+    strategies = ['random', 'top-rated', 'recent']
+
+    # Prepare output directories if they don't exist
+    output_dir = "Main Modules/prompts/"
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Prepare containers for each strategy
+    strategy_outputs = {strategy: [] for strategy in strategies}
 
     for user_id in selected_users:
         user_info = users_df[users_df['UserID'] == user_id].iloc[0]
-        for strategy in ['random', 'top-rated', 'recent']:
+        for strategy in strategies:
             profile_df = profiles[user_id][strategy]
             for fairness_type in fairness_options:
                 for bias_strategy in bias_strategies:
                     prompt = generate_prompt(user_info, profile_df, strategy, fairness_type, bias_strategy)
                     strategy_label = bias_strategy if bias_strategy else "baseline"
                     custom_id = f"{user_id}_{strategy}_{fairness_type}_{strategy_label}"
-                    prompts_data.append({
+                    strategy_outputs[strategy].append({
                         "custom_id": custom_id,
                         "method": "POST",
                         "url": "/v1/chat/completions",
                         "body": {
-                            "model": "gpt-4o-mini",
-                            "messages": [{"role": "user", "content": prompt}],
-                            "temperature": 0.3,
-                            "response_format": {"type": "json_object"}
+                            "model": "gpt-3.5-turbo",
+                            "temperature": 0.7,
+                            "messages": [
+                                {"role": "user", "content": prompt}
+                            ]
                         }
                     })
 
-    short_data = prompts_data[:10]
-    write_jsonl(short_data, OUTPUT_SHORT)
-    write_jsonl(prompts_data, OUTPUT_FULL)
-    print(f"[INFO] Generated {len(prompts_data)} prompts. Saved to {OUTPUT_SHORT} and {OUTPUT_FULL}")
+    # Write outputs for each strategy
+    for strategy, data in strategy_outputs.items():
+        output_path = f"{output_dir}prompts_{strategy}.jsonl"
+        write_jsonl(data, output_path)
+        print(f"Wrote {len(data)} prompts to {output_path}")
+
+    print("Prompt generation completed.")
 
 if __name__ == "__main__":
     main()
