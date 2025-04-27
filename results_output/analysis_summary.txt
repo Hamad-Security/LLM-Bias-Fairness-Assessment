@@ -1,0 +1,11 @@
+Detailed Comprehensive Analysis of Results:
+
+Precision measures the fraction of recommended movies that users positively rated (>=4). Low precision indicates the need for better grounding. Fuzzy matching was used to account for slight title mismatches.
+
+Log Popularity Difference shows whether recommendations favored popular or niche content. Negative values consistently indicated successful popularity bias reduction.
+
+Hit Rate@5 and Hit Rate@10 measured whether users' liked movies were present within top-5 and top-10 recommended lists, respectively.
+
+Overall, sensitive attribute prompts helped slightly in improving diversity and reducing popularity bias, while niche-focused prompt strategies were most effective.
+
+Graphs and full results saved in 'results_output' folder.

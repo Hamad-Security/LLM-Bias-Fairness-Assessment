@@ -215,7 +215,7 @@ def main():
                         "method": "POST",
                         "url": "/v1/chat/completions",
                         "body": {
-                            "model": "gpt-3.5-turbo",
+                            "model": "gpt-4.1-nano",
                             "temperature": 0.7,
                             "messages": [
                                 {"role": "user", "content": prompt}

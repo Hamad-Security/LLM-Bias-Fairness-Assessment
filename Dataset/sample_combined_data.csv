@@ -1,0 +1,11 @@
+UserID,MovieID,Rating,Timestamp,Title,Genres,Gender,Age,Occupation,Zip-code
+3513,356,4,967477686,Forrest Gump (1994),Comedy|Romance|War,M,25,16,01890
+998,3188,4,975191305,"Life and Times of Hank Greenberg, The (1998)",Documentary,M,45,20,10019
+2116,2722,4,974760434,Deep Blue Sea (1999),Action|Sci-Fi|Thriller,M,18,4,49546
+1966,1617,5,974685464,L.A. Confidential (1997),Crime|Film-Noir|Mystery|Thriller,M,25,20,93637
+5831,2023,4,957889600,"Godfather: Part III, The (1990)",Action|Crime|Drama,M,25,1,92120
+3841,3699,2,965995871,Starman (1984),Adventure|Drama|Romance|Sci-Fi,M,45,18,26101
+5306,1198,5,961017577,Raiders of the Lost Ark (1981),Action|Adventure,F,25,17,92121
+2166,3396,1,974616849,"Muppet Movie, The (1979)",Children's|Comedy,M,1,10,99203
+6025,543,3,956731433,So I Married an Axe Murderer (1993),Comedy|Romance|Thriller,F,25,1,32607
+1093,3384,4,974929530,"Taking of Pelham One Two Three, The (1974)",Action,M,50,14,60504
