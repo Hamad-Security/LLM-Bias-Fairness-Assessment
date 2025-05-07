@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
-# merge_csvs.py
-# Combine many CSVs that share the same columns into one master file.
+# merge_csvs.py  – revised, simpler, no AttributeError
 
-import os
 import csv
 from pathlib import Path
 
-# ---------- CHANGE THESE 2 LINES ONLY ----------
-CSV_DIR        = Path("Main Modules/prompt_results")   # folder that holds the many CSVs
-OUTPUT_CSV     = Path("merged_prompt_results.csv")     # where the merged file will be saved
-# ------------------------------------------------
+# ------------ EDIT THESE 2 LINES ------------
+CSV_DIR    = Path("prompt_results/top_rated")   # folder containing the many CSVs
+OUTPUT_CSV = Path("LlmCsvOutput/merged_prompt_results_top_rated.csv")     # where to save the combined file
+# --------------------------------------------
 
 def collect_csv_paths(folder: Path) -> list[Path]:
-    """Return every *.csv file inside `folder` (non-recursive)."""
+    """Return every *.csv file inside `folder` (flat, not recursive)."""
     return sorted(p for p in folder.iterdir() if p.suffix.lower() == ".csv")
 
 def merge_csvs(csv_paths: list[Path], output_path: Path) -> None:
@@ -20,33 +18,31 @@ def merge_csvs(csv_paths: list[Path], output_path: Path) -> None:
         print("❌ No CSV files found – nothing to merge.")
         return
 
-    header_written = False
+    first_header: list[str] | None = None
     with open(output_path, "w", newline="", encoding="utf-8") as fout:
-        writer = None
+        writer = csv.writer(fout)
 
         for csv_path in csv_paths:
             with open(csv_path, "r", newline="", encoding="utf-8") as fin:
                 reader = csv.reader(fin)
+
                 try:
-                    header = next(reader)          # first row (column names)
+                    header = next(reader)      # read the header row
                 except StopIteration:
                     print(f"⚠️  {csv_path.name} is empty – skipping.")
                     continue
 
-                # On first file, remember header & create writer
-                if not header_written:
-                    writer = csv.writer(fout)
+                if first_header is None:
+                    # first file → remember header & write it once
+                    first_header = header
                     writer.writerow(header)
-                    header_written = True
-
-                # For later files, verify header matches (optional)
-                elif header != writer.writerows.__self__.fieldnames if hasattr(writer, 'writerows') else header:
-                    # Basic check: same number of columns
-                    if len(header) != len(writer.writerows.__self__.fieldnames if hasattr(writer, 'writerows') else header):
+                else:
+                    # later files → make sure the header matches
+                    if header != first_header:
                         print(f"⚠️  Header mismatch in {csv_path.name} – skipping.")
-                        continue  # or raise an error
+                        continue
 
-                # Write the remaining lines (data rows)
+                # copy the remaining rows
                 for row in reader:
                     writer.writerow(row)
 

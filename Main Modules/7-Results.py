@@ -11,19 +11,19 @@ os.makedirs('results_output', exist_ok=True)
 
 # === Step 2: Load Datasets ===
 user_data = pd.read_csv('Dataset/full_movies_data.csv')
-recommendations = pd.read_csv('prompt_results/batch_680a0fd42548819084bed92a08d876f1_results.csv', header=None, names=['custom_id', 'recommended_movies'])
+recommendations = pd.read_csv('LlmCsvOutput/merged_prompt_results_top_rated.csv', header=None, names=['custom_id', 'recommended_movies'])
 
 # === Step 3: Preprocessing ===
 recommendations['recommended_movies'] = recommendations['recommended_movies'].apply(lambda x: [movie.strip() for movie in x.split(',')])
 popularity = user_data['Title'].value_counts().to_dict()
-user_liked_movies = user_data[user_data['Rating'] >= 4].groupby('UserID')['Title'].apply(set).to_dict()
+user_liked_movies = user_data[user_data['Rating'] >= 3].groupby('UserID')['Title'].apply(set).to_dict()
 
 # === Step 4: Helper Functions ===
 def fuzzy_match(recommended, liked_movies):
     """Fuzzy match recommended movies against liked movies using difflib."""
     hits = 0
     for rec in recommended:
-        match = difflib.get_close_matches(rec, liked_movies, n=1, cutoff=0.8)
+        match = difflib.get_close_matches(rec, liked_movies, n=1, cutoff=0.6)
         if match:
             hits += 1
     return hits

@@ -6,14 +6,14 @@ import os, re, json
 from openai import OpenAI
 import tiktoken
 
-# ========== CONFIGURATION ==========
+# ========== CONFIGURATION ========== # 3,4 ,12,13,5,14
 JSONL_DIR     = "Main Modules/prompts"   # folder that holds your files
-START_SEQ     = 3                        # first N to include
-END_SEQ       = 25                       # last  N to include  (inclusive)
+START_SEQ     = 1                        # first N to include
+END_SEQ       = 1                       # last  N to include  (inclusive) 
 
 MODEL         = "GPT-4.1-nano"
 API_KEY       = "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"
-BATCH_ID_FILE = "batch_ids.txt"          # one ID per line
+BATCH_ID_FILE = "batch_ids_1.txt"          # one ID per line
 
 # Pricing (per 1M tokens) and discount
 PRICING = {
@@ -74,7 +74,7 @@ def collect_files() -> list[tuple[int, str]]:
     Return a list [(seq, full_path), …] for every prompts_recent_<seq>.jsonl
     whose seq lies inside the configured range.
     """
-    pat = re.compile(r"prompts_recent_(\d+)\.jsonl$")
+    pat = re.compile(r"prompts_top-rated_(\d+)\.jsonl$")
     results: list[tuple[int, str]] = []
     for name in os.listdir(JSONL_DIR):
         m = pat.match(name)

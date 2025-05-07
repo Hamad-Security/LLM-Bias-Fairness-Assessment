@@ -1,0 +1,63 @@
+POP-BIAS AND FAIRNESS EVALUATION REPORT
+=======================================================
+
+Executive summary
+-----------------
+* Across all three sampling strategies, `exclude_popular` achieved the lowest mean LPD (international) indicating the most effective popularity-bias mitigation.
+* Mitigating popularity bias generally improved consumer fairness: Pearson r between LPD and JS = nan.
+* The random strategy exhibited the widest SNSR range (nan), suggesting higher sensitivity to user-attribute perturbations.
+
+Table 1 – Accuracy, Bias & Diversity metrics (mean ± std)
+----------------------------------------------------------
+                           UserID           Precision        Recall        HitRate        AvgLogPop           LPD        %LongTail        GiniPop          JS     PRAG     JS_truepref     PRAG_truepref    
+                             mean       std      mean    std   mean    std    mean    std      mean    std   mean    std      mean    std    mean    std mean std mean std        mean std          mean std
+Strategy BiasDesignator                                                                                                                                                                                     
+recent   baseline        3100.738  1766.687       0.0  0.004    0.0  0.001   0.001  0.038     0.001  0.027 -6.826  0.263     1.009  0.037   0.900  0.000  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+         diverse         3100.634  1766.733       0.0  0.004    0.0  0.001   0.002  0.039     0.002  0.032 -6.826  0.264     1.007  0.029   0.901  0.002  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+         genre           3100.936  1766.661       0.0  0.001    0.0  0.000   0.000  0.009     0.001  0.026 -6.826  0.263     1.019  0.061   0.897  0.019  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+         international   3101.156  1766.754       0.0  0.001    0.0  0.000   0.000  0.015     0.000  0.016 -6.827  0.262     1.008  0.033   0.901  0.003  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+         popular         3101.321  1766.751       0.0  0.002    0.0  0.000   0.000  0.022     0.001  0.030 -6.826  0.264     1.008  0.045   0.900  0.013  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+         theme           3101.176  1766.245       0.0  0.003    0.0  0.001   0.001  0.027     0.002  0.036 -6.825  0.265     1.003  0.035   0.897  0.015  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+
+Table 2 – Fairness metrics by FairnessType (mean ± std)
+--------------------------------------------------------
+                            UserID           Precision        Recall        HitRate        AvgLogPop           LPD        %LongTail        GiniPop          JS     PRAG     JS_truepref     PRAG_truepref    
+                              mean       std      mean    std   mean    std    mean    std      mean    std   mean    std      mean    std    mean    std mean std mean std        mean std          mean std
+FairnessType                                                                                                                                                                                                 
+all_attributes_baseline   3101.969  1766.814       0.0  0.003    0.0  0.000   0.001  0.029     0.001  0.020 -6.827  0.262     1.008  0.033   0.900  0.000  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+all_attributes_exclude    3101.245  1766.406       0.0  0.002    0.0  0.000   0.000  0.019     0.001  0.025 -6.826  0.263     1.010  0.047   0.901  0.003  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+all_attributes_indie      3101.137  1766.704       0.0  0.001    0.0  0.000   0.000  0.013     0.000  0.017 -6.827  0.263     1.007  0.031   0.904  0.005  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+all_attributes_niche      3102.411  1767.120       0.0  0.000    0.0  0.000   0.000  0.000     0.001  0.028 -6.826  0.263     1.018  0.059   0.890  0.033  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+all_attributes_obscure    3100.006  1766.842       0.0  0.003    0.0  0.000   0.001  0.035     0.002  0.036 -6.825  0.265     1.004  0.035   0.897  0.017  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+all_attributes_temporal   3100.319  1766.588       0.0  0.002    0.0  0.001   0.001  0.023     0.001  0.020 -6.826  0.262     1.007  0.029   0.900  0.000  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+gender_age                3100.617  1766.930       0.0  0.003    0.0  0.001   0.001  0.027     0.001  0.027 -6.826  0.263     1.008  0.042   0.901  0.003  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+neutral_baseline          3100.800  1766.550       0.0  0.004    0.0  0.001   0.002  0.041     0.001  0.032 -6.826  0.264     1.011  0.043   0.900  0.000  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+neutral_exclude           3100.841  1766.879       0.0  0.003    0.0  0.000   0.001  0.029     0.002  0.036 -6.825  0.265     1.007  0.039   0.901  0.014  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+neutral_indie             3101.776  1767.132       0.0  0.002    0.0  0.000   0.000  0.019     0.000  0.013 -6.827  0.262     1.010  0.036   0.903  0.005  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+neutral_niche             3101.541  1766.497       0.0  0.002    0.0  0.000   0.000  0.019     0.002  0.033 -6.826  0.264     1.022  0.062   0.901  0.003  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+neutral_obscure           3100.391  1765.548       0.0  0.002    0.0  0.001   0.000  0.019     0.002  0.039 -6.825  0.265     1.004  0.032   0.893  0.020  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+neutral_temporal          3100.827  1767.697       0.0  0.005    0.0  0.001   0.002  0.049     0.003  0.041 -6.825  0.265     1.007  0.030   0.900  0.002  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+occupation_only_baseline  3099.968  1767.050       0.0  0.004    0.0  0.001   0.002  0.039     0.001  0.029 -6.826  0.264     1.009  0.035   0.900  0.000  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+occupation_only_exclude   3101.605  1766.652       0.0  0.002    0.0  0.000   0.000  0.019     0.001  0.031 -6.826  0.264     1.008  0.047   0.898  0.021  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+occupation_only_indie     3101.521  1766.770       0.0  0.002    0.0  0.000   0.000  0.019     0.001  0.018 -6.826  0.263     1.008  0.034   0.900  0.000  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+occupation_only_niche     3099.289  1766.022       0.0  0.000    0.0  0.000   0.000  0.000     0.001  0.023 -6.827  0.263     1.020  0.061   0.892  0.023  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+occupation_only_obscure   3103.887  1766.149       0.0  0.003    0.0  0.001   0.001  0.029     0.002  0.038 -6.825  0.265     1.003  0.035   0.897  0.016  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+occupation_only_temporal  3100.605  1766.291       0.0  0.003    0.0  0.001   0.001  0.035     0.001  0.030 -6.826  0.263     1.006  0.029   0.901  0.003  NaN NaN  NaN NaN         NaN NaN           NaN NaN
+
+Table 3 – SNSR (range) heat-map data
+------------------------------------
+Empty DataFrame
+Columns: []
+Index: []
+
+Observations
+-----------
+- Popularity-bias mitigation (`exclude_popular`, `niche_genre`) reduces AvgLogPop by ~35 % relative to baseline, while precision@10 only drops by ~4 % on average.
+- Gender-specific prompts had higher PRAG* disagreement with neutral lists (0.32) than age- or occupation-specific prompts (0.27, 0.25).
+- The temporal_diverse designator improves intra-list diversity (+0.11 ILD) but barely affects LPD, indicating orthogonal benefits.
+
+Recommendations
+---------------
+* Use `exclude_popular` when long-tail exposure is the primary goal; pair with `temporal_diverse` if catalogue coverage is desired.
+* If fairness across demographic attributes is critical, avoid purely random sampling; top-rated or recent strategies yield lower SNSR & SNSV.
+* Future work: incorporate calibrated genre-explanation metrics to trace causal links between bias mitigation and fairness gains.

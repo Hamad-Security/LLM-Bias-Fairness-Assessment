@@ -1,182 +1,217 @@
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
-from ast import literal_eval
+import difflib
 from collections import defaultdict
-import re
-from sklearn.preprocessing import MultiLabelBinarizer
+import math
 
-# Configuration
-pd.set_option('display.max_columns', 50)
-pd.set_option('display.width', 1000)
-plt.style.use('ggplot')
+# === Step 1: Create Folder to Save Outputs ===
+os.makedirs('results_output_8', exist_ok=True)
 
-# Load datasets
-movies_df = pd.read_csv('Dataset/full_movies_data.csv')
-recs_df = pd.read_csv('prompt_results/batch_680a0fd42548819084bed92a08d876f1_results.csv')
+# === Step 2: Load Datasets ===
+user_data = pd.read_csv('Dataset/full_movies_data.csv')
+recommendations = pd.read_csv('LlmCsvOutput/merged_prompt_results_top_rated.csv', header=None, names=['custom_id', 'recommended_movies'])
 
-# Preprocessing functions
-def clean_title(title):
-    """Remove year and special characters from titles"""
-    return re.sub(r'\s*\(\d{4}\)', '', title).strip()
+# === Step 3: Preprocessing ===
+recommendations['recommended_movies'] = recommendations['recommended_movies'].apply(lambda x: [movie.strip() for movie in x.split(',')])
+popularity = user_data['Title'].value_counts().to_dict()
+user_liked_movies = user_data[user_data['Rating'] >= 3].groupby('UserID')['Title'].apply(set).to_dict()
 
-def parse_genres(genre_str):
-    """Convert genre string to list"""
-    return genre_str.split('|') if isinstance(genre_str, str) else []
+# === Step 4: Helper Functions ===
+def fuzzy_match(recommended, liked_movies):
+    """Fuzzy match recommended movies against liked movies using difflib."""
+    hits = 0
+    for rec in recommended:
+        match = difflib.get_close_matches(rec, liked_movies, n=1, cutoff=0.6)
+        if match:
+            hits += 1
+    return hits
 
-# Preprocess movies data
-movies_df['clean_title'] = movies_df['Title'].apply(clean_title)
-movies_df['Genres'] = movies_df['Genres'].apply(parse_genres)
+def compute_precision(recommended_list, liked_movies):
+    if not recommended_list:
+        return 0
+    hits = fuzzy_match(recommended_list, liked_movies)
+    return hits / len(recommended_list)
 
-# Create movie metadata dataframe
-movie_metadata = movies_df.groupby('clean_title').agg({
-    'MovieID': 'first',
-    'Genres': 'first',
-    'Rating': ['mean', 'count']
-}).reset_index()
-movie_metadata.columns = ['title', 'movie_id', 'genres', 'avg_rating', 'rating_count']
-movie_metadata['popularity'] = np.log1p(movie_metadata['rating_count'])  # Log-normalized popularity
+def compute_hit_rate(recommended_list, liked_movies, k):
+    top_k = recommended_list[:k]
+    hits = fuzzy_match(top_k, liked_movies)
+    return 1 if hits > 0 else 0
 
-# Preprocess recommendations data
-def parse_recommendations(recommendations):
+def compute_log_popularity_difference(recommended_list, user_history_movies):
+    rec_popularity = [math.log(popularity.get(movie, 1)) for movie in recommended_list]
+    hist_popularity = [math.log(popularity.get(movie, 1)) for movie in user_history_movies]
+    if not rec_popularity or not hist_popularity:
+        return 0
+    return np.mean(rec_popularity) - np.mean(hist_popularity)
+
+def average_popularity_rank(recommended_list, all_titles_by_popularity):
+    ranks = [all_titles_by_popularity.get(movie, len(all_titles_by_popularity)) for movie in recommended_list]
+    return np.mean(ranks) if ranks else np.nan
+
+def get_prompt_type(custom_id):
+    parts = custom_id.split('_')
+    if 'niche' in parts:
+        return 'niche'
+    elif 'exclude' in parts:
+        return 'exclude_popular'
+    elif 'indie' in parts:
+        return 'indie_international'
+    elif 'temporal' in parts:
+        return 'temporal_diverse'
+    elif 'obscure' in parts:
+        return 'obscure_theme'
+    else:
+        return 'baseline'
+
+def has_sensitive_attribute(custom_id):
+    return any(attr in custom_id for attr in ['gender', 'age', 'occupation', 'all_attributes'])
+
+all_titles_sorted = {title: rank for rank, title in enumerate(popularity.keys(), start=1)}
+
+# ... (Previous imports and steps 1-4 remain unchanged)
+
+# === Modified Helper Functions ===
+def parse_custom_id(custom_id):
+    """Properly parse custom_id into components"""
+    parts = custom_id.split('_')
+    user_id = parts[0]
+    strategy = parts[1]
+    fairness_type = parts[2]
+    bias_designator = '_'.join(parts[3:])  # Handle multi-part bias designators
+    return user_id, strategy, fairness_type, bias_designator
+
+# === Updated Analysis Loop ===
+results = []
+
+for idx, row in recommendations.iterrows():
+    custom_id = row['custom_id']
+    recommended_movies = row['recommended_movies']
+    
     try:
-        return [clean_title(title.strip()) for title in recommendations.split(',')]
-    except:
-        return []
+        # Parse custom ID components
+        user_id, strategy, fairness_type, bias_designator = parse_custom_id(custom_id)
+        
+        # Get user-specific data
+        liked_movies = user_liked_movies.get(int(user_id), set())
+        user_history_movies = user_data[user_data['UserID'] == int(user_id)]['Title'].tolist()
 
-recs_df['recommendations'] = recs_df.iloc[:, 1].apply(parse_recommendations)
-recs_df[['user_group', 'strategy_type']] = recs_df['custom_id'].str.extract(r'^(\d+_.+?)_(baseline|niche_genre|exclude_popular|indie_international|temporal_diverse|obscure_theme)$')
+        # Calculate metrics
+        precision = compute_precision(recommended_movies, liked_movies)
+        lpd = compute_log_popularity_difference(recommended_movies, user_history_movies)
+        avg_rank = average_popularity_rank(recommended_movies, all_titles_sorted)
+        hit_rate_5 = compute_hit_rate(recommended_movies, liked_movies, 5)
+        hit_rate_10 = compute_hit_rate(recommended_movies, liked_movies, 10)
 
-# Expand recommendations into individual rows
-exploded_recs = recs_df.explode('recommendations').merge(
-    movie_metadata, 
-    left_on='recommendations', 
-    right_on='title', 
-    how='left'
-)
+    except (IndexError, ValueError) as e:
+        print(f"Skipping malformed custom_id: {custom_id} - Error: {str(e)}")
+        continue
 
-# Analysis 1: Popularity Bias Analysis
-popularity_analysis = exploded_recs.groupby(['custom_id', 'user_group', 'strategy_type']).agg({
-    'popularity': 'mean',
-    'rating_count': 'mean',
-    'avg_rating': 'mean'
-}).reset_index()
+    results.append({
+        'strategy': strategy,
+        'fairness_type': fairness_type,
+        'bias_designator': bias_designator,
+        'precision': precision,
+        'log_popularity_diff': lpd,
+        'average_rank': avg_rank,
+        'hit_rate@5': hit_rate_5,
+        'hit_rate@10': hit_rate_10
+    })
 
-# Analysis 2: Genre Analysis
-exploded_recs['genres'] = exploded_recs['genres'].apply(
-    lambda x: x if isinstance(x, list) else []
-)
+# ... (Remaining code for analysis and visualizations remains unchanged)
+# === Updated Analysis Loop ===
+results = []
 
-# Modified Genre Analysis
-exploded_genres = exploded_recs.explode('genres')
+for idx, row in recommendations.iterrows():
+    custom_id = row['custom_id']
+    recommended_movies = row['recommended_movies']
+    
+    # Parse custom ID components
+    try:
+        strategy, fairness_type, bias_designator = parse_custom_id(custom_id)
+    except IndexError:
+        print(f"Skipping malformed custom_id: {custom_id}")
+        continue
 
-# Count genre occurrences per recommendation strategy
-genre_counts = exploded_genres.groupby(['custom_id', 'genres']).size().unstack(fill_value=0)
+    # ... (Metric calculations remain unchanged)
 
-# Calculate genre percentages
-genre_percentages = genre_counts.div(genre_counts.sum(axis=1), axis=0)
+    results.append({
+        'strategy': strategy,
+        'fairness_type': fairness_type,
+        'bias_designator': bias_designator,
+        'precision': precision,
+        'log_popularity_diff': lpd,
+        'average_rank': avg_rank,
+        'hit_rate@5': hit_rate_5,
+        'hit_rate@10': hit_rate_10
+    })
 
-# Filter out empty genres if any
-genre_percentages = genre_percentages.drop(columns=[''], errors='ignore')
+results_df = pd.DataFrame(results)
 
-# Analysis 3: Demographic Fairness
-def extract_demographics(user_group):
-    demographics = {}
-    parts = user_group.split('_')
-    demographics['age_group'] = parts[1] if 'recent' not in parts else 'neutral'
-    demographics['gender'] = next((p for p in parts if p in ['neutral', 'gender', 'male', 'female']), 'neutral')
-    demographics['occupation'] = next((p for p in parts if p in ['occupation', 'student']), 'neutral')
-    return pd.Series(demographics)
+# === Enhanced Aggregation ===
+# Create multiple analysis dimensions
+strategy_fairness = results_df.groupby(['strategy', 'fairness_type']).mean(numeric_only=True).reset_index()
+bias_fairness = results_df.groupby(['bias_designator', 'fairness_type']).mean(numeric_only=True).reset_index()
+strategy_bias = results_df.groupby(['strategy', 'bias_designator']).mean(numeric_only=True).reset_index()
 
-demographic_data = recs_df['user_group'].apply(extract_demographics)
-demographic_analysis = pd.concat([recs_df[['custom_id', 'strategy_type']], demographic_data], axis=1)
+# === Enhanced Visualizations ===
+import seaborn as sns
 
-# Analysis 4: Temporal Analysis (Year-based)
-movies_df['year'] = movies_df['Title'].str.extract(r'\((\d{4})\)').astype(float)
-movie_years = movies_df.groupby('clean_title')['year'].first()
-exploded_recs = exploded_recs.merge(movie_years, left_on='title', right_index=True, how='left')
+# 1. Heatmap Matrix
+metrics = ['precision', 'log_popularity_diff', 'hit_rate@5']
+for metric in metrics:
+    plt.figure(figsize=(12, 8))
+    pivot = strategy_fairness.pivot_table(index='strategy', 
+                                        columns='fairness_type', 
+                                        values=metric)
+    sns.heatmap(pivot, annot=True, fmt=".2f", cmap='coolwarm')
+    plt.title(f'{metric.title()} by Strategy and Fairness Type')
+    plt.savefig(f'results_output_8/heatmap_{metric}_strategy_fairness.png')
+    plt.close()
 
-# Visualization 1: Popularity Comparison
+# 2. Multi-line Plots by Fairness Type
 plt.figure(figsize=(14, 8))
-sns.boxplot(x='strategy_type', y='popularity', hue='user_group', data=popularity_analysis)
-plt.title('Popularity Distribution by Recommendation Strategy')
-plt.xticks(rotation=45)
-plt.tight_layout()
-plt.show()
+for fairness_type in results_df['fairness_type'].unique():
+    subset = strategy_bias[strategy_bias['bias_designator'] == fairness_type]
+    plt.plot(subset['strategy'], subset['log_popularity_diff'], 
+            label=fairness_type, marker='o')
 
-# Visualization 2: Genre Distribution Heatmap
-plt.figure(figsize=(16, 10))
-sns.heatmap(genre_percentages.T, cmap='viridis', 
-           annot=True, fmt=".1%", 
-           cbar_kws={'label': 'Genre Percentage'})
-plt.title('Genre Distribution Across Recommendation Strategies')
+plt.title('Popularity Bias Reduction by Strategy and Fairness Type')
 plt.xlabel('Recommendation Strategy')
-plt.ylabel('Genres')
-plt.tight_layout()
-plt.show()
+plt.ylabel('Log Popularity Difference')
+plt.legend(title='Fairness Type')
+plt.grid(True)
+plt.savefig('results_output_8/popularity_bias_strategy_fairness.png')
+plt.close()
 
-# Visualization 3: Temporal Distribution
-plt.figure(figsize=(14, 8))
-sns.swarmplot(x='strategy_type', y='year', hue='user_group',
-             data=exploded_recs, dodge=True, palette="dark")
-plt.title('Release Year Distribution by Recommendation Strategy')
-plt.xticks(rotation=45)
-plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-plt.tight_layout()
-plt.show()
+# 3. Faceted Histograms
+g = sns.FacetGrid(results_df, col='bias_designator', hue='fairness_type', 
+                 col_wrap=3, height=4)
+g.map(sns.barplot, 'strategy', 'precision', order=['random', 'top-rated', 'recent'])
+g.add_legend()
+g.savefig('results_output_8_8/faceted_precision_analysis.png')
 
-# Visualization 4: Demographic Fairness
-demo_metrics = demographic_analysis.merge(
-    popularity_analysis, 
-    on=['custom_id', 'user_group', 'strategy_type']
-)
-
-plt.figure(figsize=(14, 8))
-sns.catplot(x='strategy_type', y='popularity', 
-           hue='gender', col='age_group',
-           data=demo_metrics, kind='box',
-           height=6, aspect=0.8)
-plt.suptitle('Popularity Distribution by Demographic Groups')
-plt.tight_layout()
-plt.show()
-
-# Advanced Analysis: Recommendation Diversity
-def calculate_diversity(recommendation_list):
-    genres = exploded_recs[exploded_recs['recommendations'].isin(recommendation_list)]['genres']
-    all_genres = [g for sublist in genres for g in sublist]
-    return len(set(all_genres)) / len(all_genres) if all_genres else 0
-
-recs_df['diversity'] = recs_df['recommendations'].apply(calculate_diversity)
-
-# Visualization 5: Diversity Analysis
-plt.figure(figsize=(14, 8))
-sns.barplot(x='strategy_type', y='diversity', hue='user_group', data=recs_df)
-plt.title('Genre Diversity by Recommendation Strategy')
-plt.xticks(rotation=45)
-plt.ylabel('Diversity Index (Unique Genres/Total)')
-plt.tight_layout()
-plt.show()
-
-# Statistical Testing
-from scipy import stats
-
-def perform_anova_test(data, metric):
-    groups = [group[metric].values for name, group in data.groupby('strategy_type')]
-    f_val, p_val = stats.f_oneway(*groups)
-    print(f'ANOVA results for {metric}: F={f_val:.2f}, p={p_val:.4f}')
-
-perform_anova_test(popularity_analysis, 'popularity')
-perform_anova_test(recs_df, 'diversity')
-
-# Export Analysis Results
-analysis_results = {
-    'popularity_analysis': popularity_analysis,
-    'genre_analysis': genre_percentages,
-    'demographic_analysis': demographic_analysis,
-    'diversity_analysis': recs_df[['custom_id', 'diversity']]
+# === Enhanced Tables ===
+# Generate detailed comparison tables
+comparison_tables = {
+    'strategy_fairness': pd.pivot_table(results_df, 
+                                      index='strategy', 
+                                      columns='fairness_type',
+                                      values=metrics,
+                                      aggfunc='mean'),
+    
+    'bias_metrics': pd.pivot_table(results_df,
+                                 index='bias_designator',
+                                 columns='fairness_type',
+                                 values=['log_popularity_diff', 'average_rank'],
+                                 aggfunc='mean')
 }
 
-with pd.ExcelWriter('recommendation_analysis.xlsx') as writer:
-    for sheet_name, df in analysis_results.items():
-        df.to_excel(writer, sheet_name=sheet_name[:31], index=False)
+# Save tables as CSV and HTML
+for name, table in comparison_tables.items():
+    table.to_csv(f'results_output_8/{name}_comparison.csv')
+    table.to_html(f'results_output_8/{name}_comparison.html')
+
+# === Updated Text Analysis ===
+# ... (Existing text analysis remains but updates metrics references)

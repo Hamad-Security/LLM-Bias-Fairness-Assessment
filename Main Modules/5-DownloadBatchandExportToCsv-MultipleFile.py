@@ -7,8 +7,8 @@ from openai import OpenAI
 
 # ========== CONFIGURATION ==========
 API_KEY       = "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"
-BATCH_ID_FILE = "batch_ids.txt"   # now contains many lines
-RESULTS_DIR   = "prompt_results"
+BATCH_ID_FILE = "batch_ids_1.txt"   # now contains many lines
+RESULTS_DIR   = "prompt_results/top_rated"
 # ===================================
 
 client = OpenAI(api_key=API_KEY)
